@@ -3,6 +3,7 @@ package org.bsc.langgraph4j;
 import org.bsc.async.AsyncGenerator;
 import org.bsc.langgraph4j.action.InterruptionMetadata;
 import org.bsc.langgraph4j.checkpoint.BaseCheckpointSaver;
+import org.bsc.langgraph4j.checkpoint.Checkpoint;
 import org.bsc.langgraph4j.state.AgentState;
 import org.bsc.langgraph4j.utils.CollectionsUtils;
 
@@ -206,6 +207,24 @@ public record GraphResult( Object result, Type type ) {
             return (Map<String,Object>)result;
         }
         throw new IllegalStateException("Result doesn't contain a state object");
+    }
+
+    public Map<String,Object> asLastCheckpointStateData() {
+        return asCheckpointSaverTag().checkpoints().stream()
+                    .findFirst()
+                    .map( Checkpoint::getState )
+                    .orElseThrow(() -> new IllegalStateException("Checkpoint saver tag doesn't contain any checkpoint"));
+    }
+
+    public boolean isStateDataOrCheckpointSaverTag() {
+        return isStateData() || isCheckpointSaverTag();
+    }
+
+    public Map<String,Object> asStateDataOrLastCheckpointStateData() {
+        if( isStateData() ) {
+            return asStateData();
+        }
+        return asLastCheckpointStateData();
     }
 
     @Override
