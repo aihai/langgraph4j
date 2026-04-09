@@ -184,7 +184,7 @@ public interface AgentExecutorEx extends LG4JLoggable {
         return AsyncCommandAction.command_async( (state, config ) ->
                     state.nextAction()
                             .map( Command::new )
-                            .orElseGet( () -> new Command("model" ) ));
+                            .orElseGet( () -> new Command(AgentEx.CALL_MODEL_NODE ) ));
 
     }
 
