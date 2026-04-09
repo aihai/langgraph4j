@@ -8,7 +8,6 @@ import dev.langchain4j.invocation.InvocationParameters;
 import org.bsc.langgraph4j.GraphStateException;
 import org.bsc.langgraph4j.StateGraph;
 import org.bsc.langgraph4j.action.*;
-import org.bsc.langgraph4j.agent.Agent;
 import org.bsc.langgraph4j.agent.AgentEx;
 import org.bsc.langgraph4j.langchain4j.serializer.jackson.LC4jJacksonStateSerializer;
 import org.bsc.langgraph4j.langchain4j.serializer.std.LC4jStateSerializer;
@@ -58,11 +57,14 @@ public interface AgentExecutorEx {
      */
     class State extends MessagesState<ChatMessage> {
 
+        public static final String TOOL_EXECUTION_RESULTS = "tool_execution_results";
+
         static final Map<String, Channel<?>> SCHEMA = mergeMap(
                 MessagesState.SCHEMA,
-                Map.of( "tool_execution_results", Channels.appender(ArrayList::new) ) );
+                Map.of(TOOL_EXECUTION_RESULTS, Channels.appender(ArrayList::new) ) );
 
         public static final String FINAL_RESPONSE = "agent_response";
+        public static final String NEXT_ACTION = "next_action";
 
         /**
          * Constructs a new State with the given initialization data.
@@ -74,12 +76,12 @@ public interface AgentExecutorEx {
         }
 
         public List<ToolExecutionResultMessage> toolExecutionResults() {
-            return this.<List<ToolExecutionResultMessage>>value("tool_execution_results")
+            return this.<List<ToolExecutionResultMessage>>value(TOOL_EXECUTION_RESULTS)
                     .orElseThrow(() -> new RuntimeException("messages not found"));
         }
 
         public Optional<String> nextAction() {
-            return value("next_action");
+            return value(NEXT_ACTION);
         }
 
         /**
@@ -171,7 +173,7 @@ public interface AgentExecutorEx {
                     .map(AiMessage::toolExecutionRequests);
 
             if( toolExecutionRequests.isEmpty() ) {
-                return Map.of("agent_response", "no tool execution request found!" );
+                return Map.of(State.FINAL_RESPONSE, "no tool execution request found!" );
             }
 
             var requests = toolExecutionRequests.get();
@@ -183,10 +185,10 @@ public interface AgentExecutorEx {
                     .map( result -> ( approvals.contains(result.name()) ?
                             format( "approval_%s", result.name() ) :
                             result.name()))
-                    .map( actionId -> Map.<String,Object>of( "next_action", actionId ))
-                    .orElseGet( () ->  mapOf("messages",  state.toolExecutionResults(),
-                            "tool_execution_results", MARK_FOR_RESET, /* reset results */
-                            "next_action", MARK_FOR_REMOVAL  /* remove element */ ));
+                    .map( actionId -> Map.<String,Object>of( State.NEXT_ACTION, actionId ))
+                    .orElseGet( () ->  mapOf(State.MESSAGES_STATE,  state.toolExecutionResults(),
+                            State.TOOL_EXECUTION_RESULTS, MARK_FOR_RESET, /* reset results */
+                            State.NEXT_ACTION, MARK_FOR_REMOVAL  /* remove element */ ));
         });
     }
 
@@ -223,8 +225,8 @@ public interface AgentExecutorEx {
                 ).toList();
 
                 result.complete( new Command( resumeState,
-                        Map.of( "messages", toolResponses ,
-                                "tool_execution_results", "execution has been DENIED!",
+                        Map.of( State.MESSAGES_STATE, toolResponses ,
+                                State.TOOL_EXECUTION_RESULTS, "execution has been DENIED!",
                                 AgentEx.APPROVAL_RESULT_PROPERTY, MARK_FOR_REMOVAL)));
 
             }
@@ -235,15 +237,15 @@ public interface AgentExecutorEx {
     private static AsyncCommandAction<AgentExecutorEx.State> shouldContinue() {
         return AsyncCommandAction.command_async( (state, config ) ->
                 state.finalResponse()
-                        .map(res -> new Command(Agent.END_LABEL))
-                        .orElse(new Command(Agent.AGENT_LABEL)) );
+                        .map(res -> new Command(AgentEx.END_LABEL))
+                        .orElse(new Command(AgentEx.CONTINUE_LABEL)) );
     }
 
     private static AsyncCommandAction<State> dispatchAction() {
         return AsyncCommandAction.command_async( (state, config ) ->
                 state.nextAction()
                         .map( Command::new )
-                        .orElseGet( () -> new Command("model" ) ));
+                        .orElseGet( () -> new Command(AgentEx.CALL_MODEL_NODE ) ));
 
     }
 

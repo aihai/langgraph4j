@@ -222,8 +222,8 @@ public interface AgentEx {
                     .addConditionalEdges(CALL_MODEL_NODE,
                             requireNonNull(shouldContinueEdge, "shouldContinueEdge is required!"),
                             EdgeMappings.builder()
-                                    .to(ACTION_DISPATCHER_NODE, "continue")
-                                    .toEND("end")
+                                    .to(ACTION_DISPATCHER_NODE, CONTINUE_LABEL)
+                                    .toEND(END_LABEL)
                                     .build());
 
             var actionMappingBuilder = EdgeMappings.builder()
