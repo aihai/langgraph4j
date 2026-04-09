@@ -414,6 +414,7 @@ public final class CompiledGraph<State extends AgentState> implements GraphDefin
     Map<String,Object> initialState(Map<String,Object> inputs, RunnableConfig config) {
 
         return compileConfig.checkpointSaver()
+                .filter( $1 -> !compileConfig.releaseThread() )
                 .flatMap( saver -> saver.get( config ) )
                 .map( cp -> AgentState.updateState( cp.getState(), inputs, stateGraph.getChannels() ))
                 .orElseGet( () -> AgentState.updateState( initialStateFromSchema(), inputs, stateGraph.getChannels() ));
