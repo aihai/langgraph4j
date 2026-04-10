@@ -516,5 +516,18 @@ We hope this guide helps you get started with LangGraph4j. Happy building!
 [how-tos/subgraph-as-compiledgraph.ipynb]: how-tos/subgraph-as-compiledgraph.ipynb
 [how-tos/subgraph-as-stategraph.ipynb]: how-tos/subgraph-as-stategraph.ipynb
 
+## Baseline Maintenance
 
+### Environment
+
+- Put runtime credentials in environment variables.
+- Use `.env.example` as the configuration template.
+
+### CI
+
+- `baseline-ci.yml` provides a unified pipeline with `lint + build + test + secret scan`.
+
+### Repo Hygiene
+
+- Keep generated files (`dist/`, `build/`, `__pycache__/`, `.idea/`, `.DS_Store`) out of version control.
 
