@@ -6,6 +6,7 @@ import dev.langchain4j.data.message.*;
 import dev.langchain4j.invocation.InvocationContext;
 import dev.langchain4j.invocation.InvocationParameters;
 import org.bsc.langgraph4j.GraphStateException;
+import org.bsc.langgraph4j.LG4JLoggable;
 import org.bsc.langgraph4j.StateGraph;
 import org.bsc.langgraph4j.action.*;
 import org.bsc.langgraph4j.agent.AgentEx;
@@ -48,9 +49,7 @@ import static org.bsc.langgraph4j.utils.CollectionsUtils.mergeMap;
  *       └────┘         └─────────────┘ └─────────────┘      └─────────────┘
  * </pre>
  */
-public interface AgentExecutorEx {
-
-    org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AgentExecutorEx.class);
+public interface AgentExecutorEx extends LG4JLoggable {
 
     /**
      * Represents the state of an agent.
@@ -183,7 +182,7 @@ public interface AgentExecutorEx {
                             .noneMatch( r -> Objects.equals(r.toolName(), request.name())))
                     .findFirst()
                     .map( result -> ( approvals.contains(result.name()) ?
-                            format( "approval_%s", result.name() ) :
+                            "approval_%s".formatted(result.name()) :
                             result.name()))
                     .map( actionId -> Map.<String,Object>of( State.NEXT_ACTION, actionId ))
                     .orElseGet( () ->  mapOf(State.MESSAGES_STATE,  state.toolExecutionResults(),
@@ -202,19 +201,21 @@ public interface AgentExecutorEx {
             }
 
             var resumeState = state.<String>value( AgentEx.APPROVAL_RESULT_PROPERTY )
-                    .orElseThrow( () -> new IllegalStateException(format("resume property '%s' not found!", AgentEx.APPROVAL_RESULT_PROPERTY) ));
+                    .orElseThrow( () -> new IllegalStateException( "resume property '%s' not found!".formatted(AgentEx.APPROVAL_RESULT_PROPERTY) ));
 
+            // APPROVED
             if( Objects.equals( resumeState, AgentEx.ApprovalState.APPROVED.name() )) {
                 result.complete( new Command( resumeState,
                         Map.of(AgentEx.APPROVAL_RESULT_PROPERTY, MARK_FOR_REMOVAL)));
 
             }
             else {
-                var actionName = state.nextAction()
+                // DENIED
+                final var actionName = state.nextAction()
                         .map( v -> v.replace("approval_", "") )
                         .orElseThrow( () -> new IllegalStateException("no next action found!"));
 
-                var tools = state.toolExecutionRequestsByName( actionName );
+                final var tools = state.toolExecutionRequestsByName( actionName );
 
                 if(tools.isEmpty())  {
                     throw new IllegalStateException("no tool execution request found!");
@@ -224,7 +225,7 @@ public interface AgentExecutorEx {
                         ToolExecutionResultMessage.from( toolRequest, "execution has been DENIED!")
                 ).toList();
 
-                result.complete( new Command( resumeState,
+                result.complete( new Command( AgentEx.CALL_MODEL_NODE,
                         Map.of( State.MESSAGES_STATE, toolResponses ,
                                 State.TOOL_EXECUTION_RESULTS, "execution has been DENIED!",
                                 AgentEx.APPROVAL_RESULT_PROPERTY, MARK_FOR_REMOVAL)));
