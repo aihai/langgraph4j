@@ -91,6 +91,15 @@ public interface AgentExecutorEx extends LG4JLoggable {
             return toolExecutionRequests().stream().skip(1).toList();
         }
 
+        public Optional<List<AssistantMessage.ToolCall>> loadToolExecutionRequestsFromLastMessage() {
+
+            return lastMessage()
+                    .filter(m -> MessageType.ASSISTANT == m.getMessageType())
+                    .map(AssistantMessage.class::cast)
+                    .filter(AssistantMessage::hasToolCalls)
+                    .map(AssistantMessage::getToolCalls);
+        }
+
         public Optional<String> nextAction() {
             return value(NEXT_ACTION);
         }
@@ -255,19 +264,7 @@ public interface AgentExecutorEx extends LG4JLoggable {
                         TOOL_EXECUTION_REQUESTS, previousToolExecutionRequests);
             }
 
-            final var toolExecutionRequests = state.lastMessage()
-                    .filter(m -> MessageType.ASSISTANT == m.getMessageType())
-                    .map(AssistantMessage.class::cast)
-                    .filter(AssistantMessage::hasToolCalls)
-                    .map(AssistantMessage::getToolCalls);
-
-            if (toolExecutionRequests.isEmpty()) {
-                return Map.of("agent_response", "no tool execution request found!",
-                        NEXT_ACTION, MARK_FOR_REMOVAL,
-                        TOOL_EXECUTION_REQUESTS, MARK_FOR_RESET);
-            } else {
-
-                final var newToolExecutionRequests = toolExecutionRequests.get();
+            return state.loadToolExecutionRequestsFromLastMessage().map( newToolExecutionRequests -> {
 
                 final var currentToolExecutionRequest = newToolExecutionRequests.get(0);
 
@@ -277,7 +274,11 @@ public interface AgentExecutorEx extends LG4JLoggable {
 
                 return Map.of(NEXT_ACTION, nextAction,
                         TOOL_EXECUTION_REQUESTS, newToolExecutionRequests);
-            }
+
+            }).orElseGet( () -> Map.of("agent_response", "no tool execution request found!",
+                    NEXT_ACTION, MARK_FOR_REMOVAL,
+                    TOOL_EXECUTION_REQUESTS, MARK_FOR_RESET));
+
         });
     }
 
