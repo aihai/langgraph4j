@@ -19,9 +19,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class Issue375ITest {
 
-    enum ApprovalEnum {
-        APPROVE,
-        REJECT
+    public enum ApprovalEnum {
+        APPROVE_STD,
+        APPROVE_JSON,
+        REJECT_STD,
+        REJECT_JSON
     }
     static class SearchTools {
         @Tool( name="weather_query", value="tool to get weather" )
@@ -36,11 +38,14 @@ public class Issue375ITest {
      * test for issue <a href="https://github.com/langgraph4j/langgraph4j/issues/375">#375</a>
      */
     @ParameterizedTest
-    @EnumSource( AgentEx.ApprovalState.class )
-    public void testIssue375( AgentEx.ApprovalState approvalState ) throws Exception {
+    @EnumSource( ApprovalEnum.class )
+    public void testIssue375( ApprovalEnum approvalState ) throws Exception {
         final var path = Paths.get( "target", "checkpoint" );
 
-        final var serializer = AgentExecutorEx.Serializers.STD.object();
+        final var serializer = switch( approvalState )  {
+            case APPROVE_STD, REJECT_STD -> AgentExecutorEx.Serializers.STD.object();
+            case APPROVE_JSON, REJECT_JSON -> AgentExecutorEx.Serializers.JSON.object();
+        };
 
         final var fileSystemSaver = new FileSystemSaver( path, serializer);
         final var build = CompileConfig.builder()
@@ -76,8 +81,8 @@ public class Issue375ITest {
         assertTrue(result.isInterruptionMetadata());
 
         Map<String, Object> resume = switch( approvalState )  {
-            case APPROVED -> Map.of("approval_result", "APPROVED");
-            case REJECTED -> Map.of("approval_result", "REJECTED");
+            case APPROVE_STD, APPROVE_JSON -> Map.of(AgentEx.APPROVAL_RESULT, AgentEx.ApprovalState.APPROVED);
+            case REJECT_STD, REJECT_JSON -> Map.of(AgentEx.APPROVAL_RESULT, AgentEx.ApprovalState.REJECTED);
         };
 
         final var streamResume = graph.stream(GraphInput.resume(resume), runnableConfig);
