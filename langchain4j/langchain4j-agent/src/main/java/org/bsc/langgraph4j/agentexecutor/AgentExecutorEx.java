@@ -61,7 +61,16 @@ public interface AgentExecutorEx extends LG4JLoggable {
 
         static final Map<String, Channel<?>> SCHEMA = mergeMap(
                 MessagesState.SCHEMA,
-                Map.of( TOOL_EXECUTION_REQUESTS, Channels.base( LinkedList::new )) );
+                Map.of(
+                        TOOL_EXECUTION_REQUESTS, Channels.base( LinkedList::new ),
+                        AgentEx.APPROVAL_RESULT, Channels.base( ( prevValue, newValue ) -> {
+                            if( newValue instanceof AgentEx.ApprovalState approval ) {
+                                return approval.name();
+                            }
+                            return newValue;
+                        }))
+                );
+
 
 
         public State(Map<String, Object> initData) {
@@ -206,10 +215,10 @@ public interface AgentExecutorEx extends LG4JLoggable {
     private static AsyncCommandAction<State> approvalAction() {
         return (state, config) -> {
 
-            final var approvalResultOptional = state.<String>value( AgentEx.APPROVAL_RESULT_PROPERTY );
+            final var approvalResultOptional = state.<String>value( AgentEx.APPROVAL_RESULT );
 
             if( approvalResultOptional.isEmpty() ) {
-                return failedFuture( new IllegalStateException( "resume property '%s' not found!".formatted(AgentEx.APPROVAL_RESULT_PROPERTY) ));
+                return failedFuture( new IllegalStateException( "resume property '%s' not found!".formatted(AgentEx.APPROVAL_RESULT) ));
             }
 
             final var resumeState = approvalResultOptional.get();
@@ -217,7 +226,7 @@ public interface AgentExecutorEx extends LG4JLoggable {
             if( Objects.equals( resumeState, AgentEx.ApprovalState.APPROVED.name() )) {
                 // APPROVED
                 return completedFuture( new Command( resumeState,
-                        Map.of(AgentEx.APPROVAL_RESULT_PROPERTY, MARK_FOR_REMOVAL)));
+                        Map.of(AgentEx.APPROVAL_RESULT, MARK_FOR_REMOVAL)));
 
             }
             else {
@@ -238,7 +247,7 @@ public interface AgentExecutorEx extends LG4JLoggable {
                 return completedFuture( new Command( gotoNode,
                         Map.of( "messages",toolResponseMessage,
                                 State.TOOL_EXECUTION_REQUESTS, state.toolExecutionRequests$removeFirst(),
-                                AgentEx.APPROVAL_RESULT_PROPERTY, MARK_FOR_REMOVAL)));
+                                AgentEx.APPROVAL_RESULT, MARK_FOR_REMOVAL)));
 
             }
 
