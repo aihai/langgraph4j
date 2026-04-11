@@ -544,3 +544,13 @@ We hope this guide helps you get started with LangGraph4j. Happy building!
 - Install dependencies for this module before execution.
 - Use the standard project command to build and run (for example Maven, Gradle, npm, or Python entrypoint scripts in this repository).
 
+
+## Contributor Quick Verification
+<!-- codex-batch30-readme -->
+
+Before opening a PR, run these quick checks locally:
+
+- Build: `./mvnw -q -DskipTests package`
+- Tests: `./mvnw -q test`
+- Keep changes focused: one topic per PR with a clear title
+
