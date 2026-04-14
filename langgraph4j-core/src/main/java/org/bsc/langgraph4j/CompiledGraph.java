@@ -8,10 +8,9 @@ import org.bsc.langgraph4j.checkpoint.Checkpoint;
 import org.bsc.langgraph4j.internal.edge.Edge;
 import org.bsc.langgraph4j.internal.edge.EdgeCondition;
 import org.bsc.langgraph4j.internal.edge.EdgeValue;
+import org.bsc.langgraph4j.action.SubCompiledGraphNodeAction;
 import org.bsc.langgraph4j.internal.node.Node;
 import org.bsc.langgraph4j.internal.node.ParallelNode;
-import org.bsc.langgraph4j.action.SubCompiledGraphNodeAction;
-import org.bsc.langgraph4j.internal.node.SubCompiledGraphNode;
 import org.bsc.langgraph4j.state.AgentState;
 import org.bsc.langgraph4j.state.AgentStateFactory;
 import org.bsc.langgraph4j.state.StateSnapshot;
@@ -178,7 +177,7 @@ public final class CompiledGraph<State extends AgentState> implements GraphDefin
 
     private boolean hasSubGraphs() {
         return stateGraph.nodes.elements.stream()
-                .anyMatch(node -> node instanceof SubCompiledGraphNode );
+                .anyMatch(node -> node instanceof SubGraphNode);
     }
 
     /**
@@ -415,6 +414,7 @@ public final class CompiledGraph<State extends AgentState> implements GraphDefin
     Map<String,Object> initialState(Map<String,Object> inputs, RunnableConfig config) {
 
         return compileConfig.checkpointSaver()
+                .filter( $1 -> !compileConfig.releaseThread() )
                 .flatMap( saver -> saver.get( config ) )
                 .map( cp -> AgentState.updateState( cp.getState(), inputs, stateGraph.getChannels() ))
                 .orElseGet( () -> AgentState.updateState( initialStateFromSchema(), inputs, stateGraph.getChannels() ));
@@ -763,7 +763,7 @@ public final class CompiledGraph<State extends AgentState> implements GraphDefin
                                 context.setReturnFromEmbedWithValue( result );
                                 return;
                             }
-                            if ( result.isStateData() ) {
+                            if ( result.isStateDataOrCheckpointSaverTag() ) {
                                 // FIX #102
                                 // Assume that the whatever used appender channel doesn't accept duplicates
                                 // FIX #104: remove generator
@@ -881,10 +881,10 @@ public final class CompiledGraph<State extends AgentState> implements GraphDefin
                                         context.currentNodeId(),
                                         stateGraph.getStateFactory().apply(context.currentState()),
                                         config,
-                                        returnFromEmbed.asStateData());
+                                        returnFromEmbed.asStateDataOrLastCheckpointStateData());
                     }
                     else {
-                        future = completedFuture( returnFromEmbed.asStateData() );
+                        future = completedFuture( returnFromEmbed.asStateDataOrLastCheckpointStateData() );
                     }
 
 
