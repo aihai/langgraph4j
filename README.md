@@ -318,6 +318,13 @@ To explore the **Langgraph4j Studio** go to [studio]
 
 ## BONUS: built-in integrations
 
+### Integration Paths
+
+| Integration | Best for | Quick links |
+|---|---|---|
+| LangChain4j | Projects already using LangChain4j chat models, tools, and agent patterns | [`langchain4j/README.md`](langchain4j/README.md), [`langchain4j/langchain4j-agent/README.md`](langchain4j/langchain4j-agent/README.md) |
+| Spring AI | Spring Boot and Spring-native MCP / agent applications | [`spring-ai/README.md`](spring-ai/README.md), [`spring-ai/spring-ai-agent/README.md`](spring-ai/spring-ai-agent/README.md) |
+
 ### LangChain4j 
 
 As default use case to proof [LangChain4j] integration, We have implemented **AgentExecutor (aka ReACT Agent)** using LangGraph4j. In the [project's module][agent-executor], you can the complete working code with tests. Feel free to checkout and use it as a reference.
@@ -543,4 +550,3 @@ We hope this guide helps you get started with LangGraph4j. Happy building!
 
 - Install dependencies for this module before execution.
 - Use the standard project command to build and run (for example Maven, Gradle, npm, or Python entrypoint scripts in this repository).
-
