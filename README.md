@@ -47,6 +47,16 @@ LangGraph4j offers several features and benefits:
 *   **Asynchronous & Streaming Support:** Build responsive applications with non-blocking operations and stream results from LLMs.
 *   **Playground & Studio:** A web UI to visually inspect, run, and debug your graphs.
 
+## Pattern Matrix
+
+| Pattern | Best for | Main abstraction | Start here |
+|---|---|---|---|
+| First graph / linear flow | Learning the core execution model | `StateGraph`, normal edges, shared state | [`## Your First Graph - A Simple Example`](#your-first-graph---a-simple-example) |
+| Conditional routing | Router-style decisions and dynamic control flow | Conditional edges | [`### Edges`](#edges) |
+| Stateful checkpointed flow | Long-running or resumable workflows | `CheckpointSaver`, `CompileConfig` | [`### Checkpoints (Persistence)`](#checkpoints-persistence) |
+| Framework-integrated agents | Using LangGraph4j with Java AI frameworks | LangChain4j / Spring AI integrations | [`## BONUS: built-in integrations`](#bonus-built-in-integrations) |
+| Visual debugging and inspection | Observing and iterating on graphs interactively | Studio | [`## Studio 🤩 - Running Your Graph visually`](#studio--running-your-graph-visually) |
+
 ## Core Concepts Explained
 
 Understanding these concepts is key to using LangGraph4j effectively:
@@ -543,4 +553,3 @@ We hope this guide helps you get started with LangGraph4j. Happy building!
 
 - Install dependencies for this module before execution.
 - Use the standard project command to build and run (for example Maven, Gradle, npm, or Python entrypoint scripts in this repository).
-
