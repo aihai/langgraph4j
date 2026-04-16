@@ -183,6 +183,13 @@ Let's create a very simple graph that has two nodes: `greeter` and `responder`.
 The `greeter` node will add a greeting message to the state.
 The `responder` node will add a response message based on the greeting.
 
+Before you start, the shortest path is:
+
+1. Make sure you are on Java 17+ and have added `langgraph4j-core` to your project.
+2. Copy the example below exactly once to understand the basic `StateGraph` + shared-state flow.
+3. Run the graph locally and confirm you can see the state evolve across the two nodes.
+4. After that first success, jump to the built-in integrations or checkpointing sections depending on whether you want framework integration or persistence next.
+
 **1. Define the State:**
 Our state will hold a list of messages.
 
@@ -543,4 +550,3 @@ We hope this guide helps you get started with LangGraph4j. Happy building!
 
 - Install dependencies for this module before execution.
 - Use the standard project command to build and run (for example Maven, Gradle, npm, or Python entrypoint scripts in this repository).
-
