@@ -3,13 +3,10 @@
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg) [![docs](https://img.shields.io/badge/Site-Documentation-blue)][documentation] [![DeepWiki](https://img.shields.io/badge/DeepWiki-docs-0b6?style=flat)](https://deepwiki.com/langgraph4j/langgraph4j) [![Static Badge](https://img.shields.io/badge/maven--snapshots-1.8--SNAPSHOT-blue)][snapshots] [![Maven Central](https://img.shields.io/maven-central/v/org.bsc.langgraph4j/langgraph4j-core.svg)][releases][![discord](https://img.shields.io/discord/1364514593765986365?logo=discord&style=flat)](https://discord.gg/szVVztSYKh)
 
-
 LangGraph for Java. A library for building stateful, multi-agents applications with LLMs, built for work with [langchain4j] and [Spring AI]
 > It is inspired by [LangGraph] solution, part of [LangChain AI project].
 
-
 ## Releases
-
 
 | Date         | Release        | info
 |--------------|----------------| ---
@@ -554,30 +551,3 @@ We hope this guide helps you get started with LangGraph4j. Happy building!
 [how-tos/subgraph-as-compiledgraph.ipynb]: how-tos/subgraph-as-compiledgraph.ipynb
 [how-tos/subgraph-as-stategraph.ipynb]: how-tos/subgraph-as-stategraph.ipynb
 
-## Baseline Maintenance
-
-### Environment
-
-- Put runtime credentials in environment variables.
-- Use `.env.example` as the configuration template.
-
-### CI
-
-- `baseline-ci.yml` provides a unified pipeline with `lint + build + test + secret scan`.
-
-### Repo Hygiene
-
-- Keep generated files (`dist/`, `build/`, `__pycache__/`, `.idea/`, `.DS_Store`) out of version control.
-
-## Audit Baseline Notes
-
-### Requirements
-
-- Environment requirements are defined by this module and parent project documentation.
-- Configure credentials via environment variables before startup.
-- Use `.env.example` (or equivalent sample config) for local setup.
-
-### Run
-
-- Install dependencies for this module before execution.
-- Use the standard project command to build and run (for example Maven, Gradle, npm, or Python entrypoint scripts in this repository).
