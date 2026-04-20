@@ -93,6 +93,14 @@ LangGraph4j allows you to save (`Checkpoint`) the state of your graph at any ste
 *   **Long-running processes:** Persist the state of long-running agent interactions.
 You'll typically use a `CheckpointSaver` implementation (e.g., `MemorySaver` for in-memory storage, or you can implement your own for persistent storage).
 
+Useful starting points for persistence:
+
+- [`langgraph4j-mysql-saver/README.md`](langgraph4j-mysql-saver/README.md) for MySQL-backed checkpoints
+- [`langgraph4j-postgres-saver/README.md`](langgraph4j-postgres-saver/README.md) for PostgreSQL-backed checkpoints
+- [`langgraph4j-redis-saver/README.md`](langgraph4j-redis-saver/README.md) for Redis-backed checkpoints
+
+If you only want to see the minimal integration point first, look for `CompileConfig.builder().checkpointSaver(...)` in the saver module examples before diving into the full storage details.
+
 ## Project Structure
 
 ```
@@ -543,6 +551,7 @@ We hope this guide helps you get started with LangGraph4j. Happy building!
 
 - Install dependencies for this module before execution.
 - Use the standard project command to build and run (for example Maven, Gradle, npm, or Python entrypoint scripts in this repository).
+<<<<<<< HEAD
 
 
 ## Contributor Quick Verification
@@ -554,3 +563,5 @@ Before opening a PR, run these quick checks locally:
 - Tests: `./mvnw -q test`
 - Keep changes focused: one topic per PR with a clear title
 
+=======
+>>>>>>> codex/langgraph4j-checkpoint-links
