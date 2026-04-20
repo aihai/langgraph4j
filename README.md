@@ -18,6 +18,12 @@ LangGraph for Java. A library for building stateful, multi-agents applications w
 ‼️ **Note:**
 > The miminum supported version is the `Java 17` 
 
+| Release line | Java baseline | Notes |
+|---|---|---|
+| `1.8.x` stable releases | Java 17+ | Recommended baseline for core, integrations, and saver modules |
+| `1.8-SNAPSHOT` development builds | Java 17+ | Snapshot users should expect active development and pre-release changes |
+| Notebook-oriented tooling in `how-tos/` | Java 22 (tool-dependent) | The current notebook tooling choice referenced in `how-tos/README.md` requires Java 22 |
+
 ## Star History
 
 [![Star History Chart](https://starchart.cc/langgraph4j/langgraph4j.svg)](https://starchart.cc/langgraph4j/langgraph4j)
