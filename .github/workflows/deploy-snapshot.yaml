@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - develop
+      - develop-1.8
     paths:
       - '**/pom.xml'
 jobs:
