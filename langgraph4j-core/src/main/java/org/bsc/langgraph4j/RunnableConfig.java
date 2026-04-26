@@ -21,6 +21,15 @@ import static java.util.Optional.ofNullable;
  * without permanently altering the original configuration.
  */
 public final class RunnableConfig implements HasMetadata {
+
+    private static class EmptyHolder {
+        static final RunnableConfig value = new RunnableConfig();
+    }
+
+    public static RunnableConfig empty() {
+        return EmptyHolder.value;
+    }
+
     /**
      * key that contains boolean value to inform that graph is executing in studio environment
      * Warning: it is a RESERVED METADATA KEY don't use it
@@ -36,6 +45,40 @@ public final class RunnableConfig implements HasMetadata {
     private final String nextNode;
     private final CompiledGraph.StreamMode streamMode;
     private final Map<String,Object> metadata;
+
+    private RunnableConfig() {
+        this.threadId = null;
+        this.checkPointId = null;
+        this.nextNode = null;
+        this.streamMode = CompiledGraph.StreamMode.VALUES;
+        this.metadata = null;
+    }
+
+    /**
+     * Creates a new instance of {@code RunnableConfig} as a copy of the provided {@code config}.
+     *
+     * @param builder The configuration builder.
+     */
+    private RunnableConfig( Builder builder ) {
+        this.threadId       = builder.threadId;
+        this.checkPointId   = builder.checkPointId;
+        this.nextNode       = builder.nextNode;
+        this.streamMode     = builder.streamMode;
+        this.metadata       = ofNullable(builder.metadata())
+                .map( Map::copyOf )
+                .orElse(null);
+    }
+
+    @Override
+    public String toString() {
+        return  "RunnableConfig{ threadId=%s, checkPointId=%s, nextNode=%s, streamMode=%s } metadata: %s".formatted(
+                threadId,
+                checkPointId,
+                nextNode,
+                streamMode,
+                CollectionsUtils.toString(metadata)
+        );
+    }
 
     /**
      * Returns the stream mode of the compiled graph.
@@ -275,31 +318,6 @@ public final class RunnableConfig implements HasMetadata {
         public RunnableConfig build() {
             return new RunnableConfig(this);
         }
-    }
-    /**
-     * Creates a new instance of {@code RunnableConfig} as a copy of the provided {@code config}.
-     *
-     * @param builder The configuration builder.
-     */
-    private RunnableConfig( Builder builder ) {
-        this.threadId       = builder.threadId;
-        this.checkPointId   = builder.checkPointId;
-        this.nextNode       = builder.nextNode;
-        this.streamMode     = builder.streamMode;
-        this.metadata       = ofNullable(builder.metadata())
-                                .map( Map::copyOf )
-                                .orElse(null);
-    }
-
-    @Override
-    public String toString() {
-        return  "RunnableConfig{ threadId=%s, checkPointId=%s, nextNode=%s, streamMode=%s } metadata: %s".formatted(
-                threadId,
-                checkPointId,
-                nextNode,
-                streamMode,
-                CollectionsUtils.toString(metadata)
-                );
     }
 
 }
