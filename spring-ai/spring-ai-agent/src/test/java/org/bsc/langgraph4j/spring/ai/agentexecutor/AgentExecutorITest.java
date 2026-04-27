@@ -13,65 +13,35 @@ import org.bsc.langgraph4j.hook.NodeHook;
 import org.bsc.langgraph4j.prebuilt.MessagesState;
 import org.bsc.langgraph4j.spring.ai.agentexecutor.gemini.TestTools4Gemini;
 import org.bsc.langgraph4j.streaming.StreamingOutput;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.springaicommunity.agent.tools.FileSystemTools;
+import org.springaicommunity.agent.tools.ShellTools;
+import org.springaicommunity.agent.tools.SkillsTool;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.google.genai.GoogleGenAiChatModel;
+import org.springframework.ai.support.ToolCallbacks;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Profile;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.ResourceLoader;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
+import static java.lang.String.format;
+import static java.util.Optional.ofNullable;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = { AgentExecutorITest.Config.class })
-@ActiveProfiles("ollama")
+@SpringBootTest
 public class AgentExecutorITest {
 
-    static class Config {
-        @Bean
-        @Profile("ollama")
-        public ChatModel ollamaModel() {
-            return AiModel.OLLAMA.chatModel("qwen3");
-        }
-
-        @Bean
-        @Profile("openai")
-        public ChatModel openaiModel() {
-            return AiModel.OPENAI.chatModel("gpt-5-mini",
-                    Map.of( "OPENAI_API_KEY",System.getenv("OPENAI_API_KEY")));
-        }
-
-        @Bean
-        @Profile("google")
-        public ChatModel geminiModel() {
-            return AiModel.GEMINI.chatModel("gemini-2.5-pro",
-                    Map.of( "GEMINI_API_KEY",System.getenv("GEMINI_API_KEY"),
-                            "GOOGLE_CLOUD_PROJECT", System.getenv("GOOGLE_CLOUD_PROJECT"),
-                            "GOOGLE_CLOUD_LOCATION",System.getenv("GOOGLE_CLOUD_LOCATION")
-            ));
-        }
-
-        @Bean
-        @Profile("github-models")
-        public ChatModel githubModel() {
-            return AiModel.GITHUB_MODEL.chatModel("gpt-4o-mini");
-        }
-
-    }
     @Autowired
     private ChatModel chatModel;
     @Autowired
@@ -159,37 +129,43 @@ public class AgentExecutorITest {
 
     @ParameterizedTest
     @EnumSource(RunAgentCall.class)
-    public void runAgent(Call call) throws Exception {
+    public void runAgentExecutor(Call call) throws Exception {
 
         var saver = new MemorySaver();
 
-        var compileConfig = CompileConfig.builder()
+        final var compileConfig = CompileConfig.builder()
                 .checkpointSaver(saver)
                 .build();
 
-        var agentBuilder = AgentExecutor.builder()
+        final var agent = AgentExecutor.builder()
                 .chatModel(chatModel)
                 .streaming(call.streaming().active())
-                .emitStreamingEnd(call.streaming().emitStreamingEnd());
-
-        // FIX for GEMINI MODEL
-        if (chatModel instanceof GoogleGenAiChatModel) {
-            agentBuilder.toolsFromObject(new TestTools4Gemini());
-        } else {
-            agentBuilder.toolsFromObject(new TestTools());
-        }
-
-        var agent = agentBuilder.build().compile(compileConfig);
+                .emitStreamingEnd(call.streaming().emitStreamingEnd())
+                .toolsFromObject(
+                        // FIX for GEMINI MODEL
+                        (chatModel instanceof GoogleGenAiChatModel ) ?
+                                new TestTools4Gemini() :
+                                new TestTools())
+                .build()
+                .compile(compileConfig);
 
         System.out.println(agent.getGraph(GraphRepresentation.Type.MERMAID, "ReAct Agent", false));
 
-        final var input = GraphInput.args(Map.of("messages", new UserMessage(call.userMessage())));
-        var runnableConfig = RunnableConfig.builder().build();
+        Map<String, Object> input = Map.of("messages", new UserMessage(call.userMessage()));
+        var runnableConfig = RunnableConfig.empty();
 
-        var result = agent.stream(input, runnableConfig);
+        var result = agent.stream( GraphInput.args(input), runnableConfig);
 
         var output = result.stream()
-                .peek(System.out::println)
+                .peek( o -> {
+                    if (o instanceof StreamingOutput<?> out) {
+                        if( ofNullable(out.chunk()).map(String::isBlank).orElse(false) ) {
+                            return;
+                        }
+                    }
+                    System.out.println(o);
+
+                })
                 .reduce((a, b) -> b)
                 .orElseThrow();
 
@@ -201,39 +177,57 @@ public class AgentExecutorITest {
 
     }
 
-    public enum runAgentWithApproval implements Call {
-        TestWithApprove {
-            @Override
-            public String userMessage() {
-                return """
-                perform test twice with message 'this is a test' and reports their results and also number of current active threads
-                """;
-            }
-            @Override
-            public Streaming streaming() {
-                return Streaming.FULL ;
-            }
+    @ParameterizedTest
+    @EnumSource(RunAgentCall.class)
+    public void runAgentExecutorEx(Call call) throws Exception {
 
-        },
-        testWithReject {
-            @Override
-            public String userMessage() {
-                return """
-                perform test twice with message 'this is a test' and reports their results and also number of current active threads
-                """;
-            }
-            @Override
-            public Streaming streaming() {
-                return Streaming.FULL ;
-            }
-        }
-        ;
+        final var saver = new MemorySaver();
+
+        final var compileConfig = CompileConfig.builder()
+                .checkpointSaver(saver)
+                .build();
+
+       final var agent = AgentExecutorEx.builder()
+                .chatModel(chatModel)
+                .streaming(call.streaming().active())
+                .emitStreamingEnd(call.streaming().emitStreamingEnd())
+                .toolsFromObject(
+                        // FIX for GEMINI MODEL
+                        (chatModel instanceof GoogleGenAiChatModel ) ?
+                            new TestTools4Gemini() :
+                            new TestTools())
+                .build()
+                .compile(compileConfig);
+
+        System.out.println(agent.getGraph(GraphRepresentation.Type.MERMAID, "ReAct Agent", false));
+
+        Map<String, Object> input = Map.of("messages", new UserMessage(call.userMessage()));
+        var runnableConfig = RunnableConfig.empty();
+
+        var result = agent.stream( GraphInput.args(input), runnableConfig);
+
+        var output = result.stream()
+                .peek( o -> {
+                    if (o instanceof StreamingOutput<?> out) {
+                        final var chunk = out.chunk();
+                        if( chunk == null || chunk.isBlank() ) {
+                            return;
+                        }
+                    }
+                    System.out.println(o);
+                })
+                .reduce((a, b) -> b)
+                .orElseThrow();
+
+        System.out.printf("result: %s%n",
+                output.state().lastMessage()
+                        .map(AssistantMessage.class::cast)
+                        .map(AssistantMessage::getText)
+                        .orElseThrow());
 
     }
 
-    @ParameterizedTest
-    @EnumSource(runAgentWithApproval.class)
-    public void runAgentWithApproval(runAgentWithApproval call) throws Exception {
+    public void runAgentWithApproval(Call call) throws Exception {
 
         var saver = new MemorySaver();
 
@@ -253,20 +247,19 @@ public class AgentExecutorITest {
                 .build()
                 .compile(compileConfig);
 
-        // System.out.println(agent.getGraph(GraphRepresentation.Type.MERMAID, "ReAct Agent", false));
+        System.out.println(agent.getGraph(GraphRepresentation.Type.MERMAID, "ReAct Agent", false));
 
-        GraphInput input = GraphInput.args(Map.of("messages", new UserMessage(call.userMessage())));
+        Map<String, Object> input = Map.of("messages", new UserMessage(call.userMessage()));
 
-        var runnableConfig = RunnableConfig.builder().build();
+        var runnableConfig = RunnableConfig.empty();
 
         while (true) {
-            var result = agent.stream(input, runnableConfig);
+            var result = agent.stream(GraphInput.args(input), runnableConfig);
 
             var output = result.stream()
                     .peek(s -> {
                         if (s instanceof StreamingOutput<?> out) {
-                            if( !out.chunk().isEmpty())
-                                System.out.printf("%s: (%s)\n", out.node(), out.chunk());
+                            System.out.printf("%s: (%s)\n", out.node(), out.chunk());
                         } else {
                             System.out.println(s.node());
                         }
@@ -280,18 +273,25 @@ public class AgentExecutorITest {
 
             } else {
 
-                var returnValue = GraphResult.from(result);
+                var returnValue = AsyncGenerator.resultValue(result);
 
-                if (returnValue.isInterruptionMetadata()) {
+                if (returnValue.isPresent()) {
 
-                    System.out.printf("interrupted: %s%n",returnValue.asInterruptionMetadata() );
+                    System.out.printf("interrupted: %s%n", returnValue.orElse("NO RESULT FOUND!"));
 
-                    input = switch( call ) {
-                        case TestWithApprove -> GraphInput.resume(Map.of(AgentEx.APPROVAL_RESULT, AgentEx.ApprovalState.APPROVED));
-                        case testWithReject -> GraphInput.resume(Map.of(AgentEx.APPROVAL_RESULT, AgentEx.ApprovalState.REJECTED));
-                    };
+                    if (returnValue.get() instanceof InterruptionMetadata<?> interruption) {
 
+                        var answer = System.console().readLine(format("%s : (N\\y) \t\n", interruption.metadata("label").orElse("Approve action ?")));
+
+                        if (Objects.equals(answer, "Y") || Objects.equals(answer, "y")) {
+                            runnableConfig = agent.updateState(runnableConfig, Map.of(AgentEx.APPROVAL_RESULT, AgentEx.ApprovalState.APPROVED.name()));
+                        } else {
+                            runnableConfig = agent.updateState(runnableConfig, Map.of(AgentEx.APPROVAL_RESULT, AgentEx.ApprovalState.REJECTED.name()));
+                        }
+                    }
+                    input = null;
                 }
+
             }
 
         }
@@ -324,9 +324,9 @@ public class AgentExecutorITest {
         System.out.println(agent.getGraph(GraphRepresentation.Type.MERMAID, "ReAct Agent", false));
 
         Map<String, Object> input = Map.of("messages", new UserMessage(call.userMessage()));
-        var runnableConfig = RunnableConfig.builder().build();
+        var runnableConfig = RunnableConfig.empty();
 
-        var iterator = agent.stream(input, runnableConfig);
+        var iterator = agent.stream(GraphInput.args(input), runnableConfig);
 
         var output = iterator.stream()
                 .peek(System.out::println)
@@ -374,9 +374,9 @@ public class AgentExecutorITest {
 
         Map<String, Object> input = Map.of("messages", new UserMessage(call.userMessage()));
 
-        var runnableConfig = RunnableConfig.builder().build();
+        var runnableConfig = RunnableConfig.empty();
 
-        var generator = agent.stream(input, runnableConfig);
+        var generator = agent.stream(GraphInput.args(input), runnableConfig);
 
 
         var future = CompletableFuture.runAsync(() -> {
@@ -425,12 +425,18 @@ public class AgentExecutorITest {
                 .checkpointSaver(saver)
                 .build();
 
+        final var skills = SkillsTool.builder()
+                            .addSkillsResource( resourceLoader.getResource("classpath:skills"))
+                            .build();
+
         var agent = AgentExecutor.builder()
                 .addCallModelHook( hook )
                 .addExecuteToolsHook( hook )
                 .chatModel(chatModel)
                 .defaultSystem("Always use the available skills to assist the user in their requests.")
-                .skills(resourceLoader.getResource("classpath:skills"))
+                .tool( skills )
+                .tools(List.of(ToolCallbacks.from(FileSystemTools.builder().build())))
+                .tools(List.of(ToolCallbacks.from(ShellTools.builder().build())))
                 .build()
                 .compile(compileConfig);
 
@@ -443,7 +449,7 @@ public class AgentExecutorITest {
 					""";
         var input = GraphInput.args(Map.of("messages", new UserMessage(userMessage)));
 
-        var runnableConfig = RunnableConfig.builder().build();
+        var runnableConfig = RunnableConfig.empty();
 
         var generator = agent.stream(input, runnableConfig);
 
@@ -469,6 +475,10 @@ public class AgentExecutorITest {
                 .checkpointSaver(saver)
                 .build();
 
+        final var skills = SkillsTool.builder()
+                .addSkillsResource( resourceLoader.getResource("classpath:skills"))
+                .build();
+
         var agent = AgentExecutorEx.builder()
                 .addCallModelHook( hook )
                 .addApprovalActionHook( hook )
@@ -477,7 +487,9 @@ public class AgentExecutorITest {
                 .addDispatchToolsHook( hook )
                 .chatModel(chatModel)
                 .defaultSystem("Always use the available skills to assist the user in their requests.")
-                .skills(resourceLoader.getResource("classpath:skills"))
+                .tool( skills )
+                .tools(List.of(ToolCallbacks.from(FileSystemTools.builder().build())))
+                .tools(List.of(ToolCallbacks.from(ShellTools.builder().build())))
                 .build()
                 .compile(compileConfig);
 
@@ -490,7 +502,7 @@ public class AgentExecutorITest {
 					""";
         var input = GraphInput.args(Map.of("messages", new UserMessage(userMessage)));
 
-        var runnableConfig = RunnableConfig.builder().build();
+        var runnableConfig = RunnableConfig.empty();
 
         var generator = agent.stream(input, runnableConfig);
 

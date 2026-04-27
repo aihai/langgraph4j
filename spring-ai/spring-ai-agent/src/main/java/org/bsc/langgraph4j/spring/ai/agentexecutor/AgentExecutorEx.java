@@ -63,12 +63,14 @@ public interface AgentExecutorEx extends LG4JLoggable {
     class State extends MessagesState<Message> {
 
         public static final String TOOL_EXECUTION_REQUESTS = "tool_execution_requests";
+        public static final String TOOL_EXECUTION_RESPONSES = "tool_execution_responses";
         public static final String NEXT_ACTION = "next_action";
 
         static final Map<String, Channel<?>> SCHEMA = mergeMap(
                 MessagesState.SCHEMA,
                 Map.of(
                         TOOL_EXECUTION_REQUESTS, Channels.base( LinkedList::new ),
+                        TOOL_EXECUTION_RESPONSES, Channels.appender( LinkedList::new ),
                         AgentEx.APPROVAL_RESULT, Channels.base( ( prevValue, newValue ) -> {
                             if( newValue instanceof AgentEx.ApprovalState approval ) {
                                 return approval.name();
@@ -91,8 +93,17 @@ public interface AgentExecutorEx extends LG4JLoggable {
                     .orElseThrow();
         }
 
+        public Optional<AssistantMessage.ToolCall> toolExecutionRequests$getFirst() {
+            return toolExecutionRequests().stream().findFirst();
+        }
+
         private List<AssistantMessage.ToolCall> toolExecutionRequests$removeFirst() {
             return toolExecutionRequests().stream().skip(1).toList();
+        }
+
+        public List<ToolResponseMessage.ToolResponse> toolExecutionResponses() {
+            return this.<List<ToolResponseMessage.ToolResponse>>value(TOOL_EXECUTION_RESPONSES)
+                    .orElseThrow();
         }
 
         private Optional<List<AssistantMessage.ToolCall>> loadToolExecutionRequestsFromLastMessage() {
@@ -249,8 +260,8 @@ public interface AgentExecutorEx extends LG4JLoggable {
                         AgentEx.CALL_MODEL_NODE ;
 
                 return completedFuture( new Command( gotoNode,
-                        Map.of( "messages",toolResponseMessage,
-                                State.TOOL_EXECUTION_REQUESTS, state.toolExecutionRequests$removeFirst(),
+                        Map.of( State.TOOL_EXECUTION_REQUESTS, state.toolExecutionRequests$removeFirst(),
+                                State.TOOL_EXECUTION_RESPONSES, toolResponseMessage,
                                 AgentEx.APPROVAL_RESULT, MARK_FOR_REMOVAL)));
 
             }
@@ -272,11 +283,37 @@ public interface AgentExecutorEx extends LG4JLoggable {
                         "approval_%s".formatted(currentToolExecutionRequest.name()) :
                         currentToolExecutionRequest.name();
 
-                return Map.of(State.NEXT_ACTION, nextAction,
+                return Map.of(  State.NEXT_ACTION, nextAction,
                         State.TOOL_EXECUTION_REQUESTS, previousToolExecutionRequests);
             }
 
-            return state.loadToolExecutionRequestsFromLastMessage().map( newToolExecutionRequests -> {
+            // CHECK IF THERE ARE TOOLS RESPONSES
+            if( !state.toolExecutionResponses().isEmpty() ) {
+
+                final var toolResponseMessage = ToolResponseMessage.builder()
+                        .responses(state.toolExecutionResponses())
+                        .build();
+
+                return Map.of(
+                        State.MESSAGES_STATE, toolResponseMessage,
+                        State.TOOL_EXECUTION_RESPONSES, MARK_FOR_RESET,
+                        State.NEXT_ACTION, MARK_FOR_REMOVAL,
+                        State.TOOL_EXECUTION_REQUESTS, MARK_FOR_RESET);
+            }
+
+            final var toolExecutionRequests = state.lastMessage()
+                    .filter(m -> MessageType.ASSISTANT == m.getMessageType())
+                    .map(AssistantMessage.class::cast)
+                    .filter(AssistantMessage::hasToolCalls)
+                    .map(AssistantMessage::getToolCalls);
+
+            if (toolExecutionRequests.isEmpty()) {
+                return Map.of(
+                        State.NEXT_ACTION, MARK_FOR_REMOVAL,
+                        State.TOOL_EXECUTION_REQUESTS, MARK_FOR_RESET);
+            } else {
+
+                final var newToolExecutionRequests = toolExecutionRequests.get();
 
                 final var currentToolExecutionRequest = newToolExecutionRequests.get(0);
 
@@ -284,13 +321,10 @@ public interface AgentExecutorEx extends LG4JLoggable {
                         "approval_%s".formatted(currentToolExecutionRequest.name()) :
                         currentToolExecutionRequest.name();
 
-                return Map.of(State.NEXT_ACTION, nextAction,
+                return Map.of(
+                        State.NEXT_ACTION, nextAction,
                         State.TOOL_EXECUTION_REQUESTS, newToolExecutionRequests);
-
-            }).orElseGet( () -> Map.of("agent_response", "no tool execution request found!",
-                    State.NEXT_ACTION, MARK_FOR_REMOVAL,
-                    State.TOOL_EXECUTION_REQUESTS, MARK_FOR_RESET));
-
+            }
         });
     }
 
@@ -298,24 +332,20 @@ public interface AgentExecutorEx extends LG4JLoggable {
         return ( state, config ) -> {
             log.trace( "ExecuteTool" );
 
-            final var currentToolExecutionRequests = state.toolExecutionRequests();
-
-            if( currentToolExecutionRequests.isEmpty()) {
-                return failedFuture( new IllegalArgumentException("no tool execution request found!") );
-
-            }
-
-            final var currentToolExecutionRequest = currentToolExecutionRequests.get(0);
-
-            return toolService.executeFunctions( List.of(currentToolExecutionRequest), state.data(), "messages" )
-                    .thenApply( command ->
-                            mergeMap( command.update(),
-                                    Map.of(State.TOOL_EXECUTION_REQUESTS,
-                                            state.toolExecutionRequests$removeFirst() ),
-                                            (v1,v2) -> v2 ));
+            return state.toolExecutionRequests$getFirst().map( toolCall ->
+                            toolService.executeFunctions( List.of(toolCall), state.data() )
+                                    .thenApply( result ->
+                                            result.command().withMergedUpdate(
+                                                            Map.of( State.TOOL_EXECUTION_RESPONSES,
+                                                                    result.toolResponses(),
+                                                                    State.TOOL_EXECUTION_REQUESTS,
+                                                                    state.toolExecutionRequests$removeFirst()),
+                                                            (v1,v2) -> v2 )
+                                                    .update()
+                                    ))
+                    .orElseGet( () -> failedFuture( new IllegalArgumentException("no tool execution request found!") ) );
 
         };
-
     }
 
     static AsyncCommandAction<State> shouldContinue() {

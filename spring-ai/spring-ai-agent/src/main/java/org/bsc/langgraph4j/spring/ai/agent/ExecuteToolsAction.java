@@ -8,16 +8,18 @@ import org.bsc.langgraph4j.prebuilt.MessagesState;
 import org.bsc.langgraph4j.spring.ai.tool.SpringAIToolService;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.ai.tool.ToolCallback;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 import static java.util.concurrent.CompletableFuture.failedFuture;
 
-class ExecuteToolsAction<State extends MessagesState<Message>> implements AsyncCommandAction<State>  {
+public class ExecuteToolsAction<State extends MessagesState<Message>> implements AsyncCommandAction<State> {
 
     final SpringAIToolService toolService;
 
@@ -27,7 +29,6 @@ class ExecuteToolsAction<State extends MessagesState<Message>> implements AsyncC
 
     @Override
     public CompletableFuture<Command> apply(State state, RunnableConfig runnableConfig) {
-        ReactAgent.log.trace("executeTools");
 
         final var message = state.lastMessage();
 
@@ -39,7 +40,7 @@ class ExecuteToolsAction<State extends MessagesState<Message>> implements AsyncC
 
             if (assistantMessage.hasToolCalls()) {
 
-                return toolService.executeFunctions(assistantMessage.getToolCalls(), state.data())
+                return toolService.executeFunctions(assistantMessage.getToolCalls(), state.data(), MessagesState.MESSAGES_STATE)
                         .thenApply( command -> {
                             if( command.gotoNodeSafe().isPresent() ) {
                                 return command;

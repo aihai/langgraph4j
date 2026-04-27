@@ -1,8 +1,6 @@
 package org.bsc.langgraph4j.spring.ai.generators;
 
-import java.util.*;
-
-import org.bsc.async.AsyncGenerator;
+    import org.bsc.async.AsyncGenerator;
 import org.bsc.async.AsyncGeneratorQueue;
 import org.bsc.langgraph4j.HasMetadata;
 import org.bsc.langgraph4j.NodeOutput;
@@ -18,12 +16,14 @@ import org.springframework.ai.chat.model.Generation;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.SynchronousSink;
 
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.Objects.requireNonNullElse;
 import static java.util.Optional.ofNullable;
 
 public class StreamingChatGenerator<State extends AgentState> extends AsyncGenerator.WithResult<StreamingOutput<State>> {
@@ -96,7 +96,7 @@ public class StreamingChatGenerator<State extends AgentState> extends AsyncGener
          * @param queue the blocking queue for async generator data
          * @return the builder instance
          */
-        public Builder<State> queue(BlockingQueue<AsyncGenerator.Data<StreamingOutput<State>>> queue ) {
+        public Builder<State> queue(BlockingQueue<Data<StreamingOutput<State>>> queue ) {
             this.queue = queue;
             return this;
         }
@@ -156,7 +156,7 @@ public class StreamingChatGenerator<State extends AgentState> extends AsyncGener
     }
 
 
-    private StreamingChatGenerator( Builder<State> builder, Flux<ChatResponse> flux ) {
+    private StreamingChatGenerator(Builder<State> builder, Flux<ChatResponse> flux ) {
         super(new AsyncGeneratorQueue.Generator<>(Objects.requireNonNull(builder.queue, "queue cannot be null")));
 
         flux
@@ -169,7 +169,7 @@ public class StreamingChatGenerator<State extends AgentState> extends AsyncGener
                         last = mergeResponses(last, current);
 
 
-                        builder.queue.add( AsyncGenerator.Data.of(
+                        builder.queue.add( Data.of(
                                 new StreamingOutput<>( textFromResponse(current).orElse(""),
                                         builder.startingNode,
                                         builder.startingState,
@@ -182,15 +182,15 @@ public class StreamingChatGenerator<State extends AgentState> extends AsyncGener
                 .last()
                 .doOnSuccess( last -> {
                     if( builder.emitStreamingOutputEnd ) {
-                        builder.queue.add(AsyncGenerator.Data.of(
+                        builder.queue.add(Data.of(
                                 new StreamingOutputEnd<>(  textFromResponse(last).orElse(null),
                                         builder.startingNode,
                                         builder.startingState,
                                         Metadata.of(last) )));
                     }
-                    builder.queue.add(AsyncGenerator.Data.done( builder.mapResult.apply(last) ));
+                    builder.queue.add(Data.done( builder.mapResult.apply(last) ));
                 })
-                .doOnError( error -> builder.queue.add( AsyncGenerator.Data.error(error) ))
+                .doOnError( error -> builder.queue.add( Data.error(error) ))
                 .subscribe( ) ;
 
     }
@@ -220,7 +220,7 @@ public class StreamingChatGenerator<State extends AgentState> extends AsyncGener
         var currentMessage = current.getResult().getOutput();
 
         var mergedMessage = AssistantMessage.builder()
-                .content(requireNonNull(mergeText(lastMessage.getText(), currentMessage.getText())))
+                .content(requireNonNullElse(mergeText(lastMessage.getText(), currentMessage.getText()), ""))
                 .properties(currentMessage.getMetadata())
                 .toolCalls(mergeToolCalls(lastMessage.getToolCalls(), currentMessage.getToolCalls()))
                 .media(currentMessage.getMedia())
