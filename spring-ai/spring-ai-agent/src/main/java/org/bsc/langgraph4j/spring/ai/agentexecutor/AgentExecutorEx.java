@@ -204,21 +204,6 @@ public interface AgentExecutorEx extends LG4JLoggable {
         return new Builder();
     }
 
-    private static ToolResponseMessage createRejectToolResponseMessage(AssistantMessage.ToolCall toolExecutionRequest )
-    {
-
-        final var responseData = "tool '%s'  execution has been DENIED!".formatted(toolExecutionRequest.name());
-
-        final var toolResponse = new ToolResponseMessage.ToolResponse(toolExecutionRequest.id(),
-                toolExecutionRequest.name(),
-                responseData);
-
-        return ToolResponseMessage.builder()
-                .responses( List.of(toolResponse) )
-                .build();
-
-    }
-
     private static AsyncCommandAction<State> dispatchAction() {
         return AsyncCommandAction.command_async( (state, config ) ->
                     state.nextAction()
@@ -253,15 +238,23 @@ public interface AgentExecutorEx extends LG4JLoggable {
                     return failedFuture( new IllegalStateException("no tool execution request found!") );
                 }
 
-                final var toolResponseMessage = createRejectToolResponseMessage( currentToolExecutionRequests.get(0) );
+                final var toolExecutionRequest = currentToolExecutionRequests.get(0);
 
-                final var gotoNode = ( currentToolExecutionRequests.size() > 1 ) ?
-                        AgentEx.ACTION_DISPATCHER_NODE :
-                        AgentEx.CALL_MODEL_NODE ;
+                final var responseData = "tool '%s'  execution has been DENIED!".formatted(toolExecutionRequest.name());
+
+                final var toolResponse = new ToolResponseMessage.ToolResponse(toolExecutionRequest.id(),
+                        toolExecutionRequest.name(),
+                        responseData);
+
+                //final var gotoNode = ( currentToolExecutionRequests.size() > 1 ) ?
+                //        AgentEx.ACTION_DISPATCHER_NODE :
+                //        AgentEx.CALL_MODEL_NODE ;
+
+                final var gotoNode = AgentEx.ACTION_DISPATCHER_NODE;
 
                 return completedFuture( new Command( gotoNode,
                         Map.of( State.TOOL_EXECUTION_REQUESTS, state.toolExecutionRequests$removeFirst(),
-                                State.TOOL_EXECUTION_RESPONSES, toolResponseMessage,
+                                State.TOOL_EXECUTION_RESPONSES, toolResponse,
                                 AgentEx.APPROVAL_RESULT, MARK_FOR_REMOVAL)));
 
             }
