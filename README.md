@@ -10,10 +10,8 @@ LangGraph for Java. A library for building stateful, multi-agents applications w
 
 | Date         | Release        | info
 |--------------|----------------| ---
-| Apr 27, 2026 | `1.8.14` | last release
+| May 7, 2026 | `1.8.15` | last release
 
-‼️ **Note:**
-> The miminum supported version is the `Java 17` 
 
 | Release line | Java baseline | Notes |
 |---|---|---|
@@ -54,11 +52,11 @@ LangGraph4j offers several features and benefits:
 
 | Pattern | Best for | Main abstraction | Start here |
 |---|---|---|---|
-| First graph / linear flow | Learning the core execution model | `StateGraph`, normal edges, shared state | [`## Your First Graph - A Simple Example`](#your-first-graph---a-simple-example) |
-| Conditional routing | Router-style decisions and dynamic control flow | Conditional edges | [`### Edges`](#edges) |
-| Stateful checkpointed flow | Long-running or resumable workflows | `CheckpointSaver`, `CompileConfig` | [`### Checkpoints (Persistence)`](#checkpoints-persistence) |
-| Framework-integrated agents | Using LangGraph4j with Java AI frameworks | LangChain4j / Spring AI integrations | [`## BONUS: built-in integrations`](#bonus-built-in-integrations) |
-| Visual debugging and inspection | Observing and iterating on graphs interactively | Studio | [`## Studio 🤩 - Running Your Graph visually`](#studio--running-your-graph-visually) |
+| First graph / linear flow | Learning the core execution model | `StateGraph`, normal edges, shared state | [`Your First Graph - A Simple Example`](#your-first-graph---a-simple-example) |
+| Conditional routing | Router-style decisions and dynamic control flow | Conditional edges | [`Edges`](#edges) |
+| Stateful checkpointed flow | Long-running or resumable workflows | `CheckpointSaver`, `CompileConfig` | [`Checkpoints (Persistence)`](#checkpoints-persistence) |
+| Framework-integrated agents | Using LangGraph4j with Java AI frameworks | LangChain4j / Spring AI integrations | [`BONUS: built-in integrations`](#bonus-built-in-integrations) |
+| Visual debugging and inspection | Observing and iterating on graphs interactively | Studio | [`Studio 🤩 - Running Your Graph visually`](#studio--running-your-graph-visually) |
 
 ## Core Concepts Explained
 
@@ -150,7 +148,7 @@ Make sure you are using Java 17 or later.
 **Latest Stable Version (Recommended):**
 ```xml
 <properties>
-    <langgraph4j.version>1.8.14</langgraph4j.version> <!-- Check for the actual latest version -->
+    <langgraph4j.version>1.8.15</langgraph4j.version> <!-- Check for the actual latest version -->
 </properties>
 
 <!-- Optional: Add the Bill of Materials (BOM) to manage langgraph4j module versions -->
@@ -182,7 +180,7 @@ If you want to use the latest unreleased features, you can use a snapshot versio
 <dependency>
     <groupId>org.bsc.langgraph4j</groupId>
     <artifactId>langgraph4j-core</artifactId>
-    <version>1.8.14</version> <!-- Or the current snapshot version -->
+    <version>1.8.15</version> <!-- Or the current snapshot version -->
 </dependency>
 ```
 You might need to configure your `settings.xml` or `pom.xml` to include the Sonatype OSS snapshots repository:

@@ -1,4 +1,4 @@
-//DEPS org.bsc.langgraph4j:langgraph4j-javelit:1.8.14
+//DEPS org.bsc.langgraph4j:langgraph4j-javelit:1.8.15
 
 import io.javelit.core.Jt;
 import org.bsc.javelit.JtMultiSelect;
