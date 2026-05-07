@@ -2,6 +2,46 @@
 
 
 
+<!-- "name: v1.8.15" is a release tag -->
+
+## [v1.8.15](https://github.com/bsorrentino/langgraph4j/releases/tag/v1.8.15) (2026-05-07)
+
+
+### Bug Fixes
+
+ -  **spring-ai/agentexecutor**  route denied tool approvals through dispatcher ([010273b98b07632](https://github.com/bsorrentino/langgraph4j/commit/010273b98b076325ef7ac315623beb6c95afd8da))
+     > Return a denied tool response directly and continue through the action dispatcher so pending tool execution requests are handled consistently.
+     > working on #393
+
+
+
+### Test 
+
+ -  **spring-ai/agentexecutor**  Add parameterized approval integration coverage for approved and rejected tool execution flows. ([0cdc68aebbdc18d](https://github.com/bsorrentino/langgraph4j/commit/0cdc68aebbdc18d0a65c4690a3b1182d2a5b29ee))
+    > working on #393
+
+ -  **langchain4j**  add issue 391 integration coverage ([a7126bbfd58918f](https://github.com/bsorrentino/langgraph4j/commit/a7126bbfd58918ff2d248a4770625ab823d6997d))
+    > working on #391
+
+ -  **langchain4j**  add streaming chat model factory enum for test support ([93c5aeef4809e4f](https://github.com/bsorrentino/langgraph4j/commit/93c5aeef4809e4fb781fff23fa4a430450c892d0))
+   
+
+### Documentation
+
+ -  update changelog ([fe3e12e40a3d8b4](https://github.com/bsorrentino/langgraph4j/commit/fe3e12e40a3d8b451fb571eb2f3aba7ebce63f45))
+
+
+### ALM 
+
+ -  bump to next version 1.8.15 ([c7defc94210fbe9](https://github.com/bsorrentino/langgraph4j/commit/c7defc94210fbe9e082a79b731be357bc7f95c68))
+   
+ -  bump to next dev version 1.8-SNAPSHOT ([2cd260935168adc](https://github.com/bsorrentino/langgraph4j/commit/2cd260935168adc19e0eb315c03a18ee2617ced7))
+   
+
+
+
+
+
 <!-- "name: v1.8.14" is a release tag -->
 
 ## [v1.8.14](https://github.com/bsorrentino/langgraph4j/releases/tag/v1.8.14) (2026-04-27)
