@@ -64,9 +64,7 @@ public final class RunnableConfig implements HasMetadata {
         this.checkPointId   = builder.checkPointId;
         this.nextNode       = builder.nextNode;
         this.streamMode     = builder.streamMode;
-        this.metadata       = ofNullable(builder.metadata())
-                .map( Map::copyOf )
-                .orElse(null);
+        this.metadata       = builder.metadata();
     }
 
     @Override
@@ -162,6 +160,17 @@ public final class RunnableConfig implements HasMetadata {
                 .build();
     }
 
+    public RunnableConfig removeMetadata( String ...keys ) {
+        if( metadata == null || metadata.isEmpty() ) return this;
+
+        final var resultBuilder = new RunnableConfig.Builder( this);
+        for (String key : keys) {
+            resultBuilder.removeMetadata(key);
+        }
+        return resultBuilder.build();
+    }
+
+
     @Override
     public Set<String> metadataKeys() {
         return ofNullable(metadata).map( Map::keySet ).orElseGet(Set::of);
@@ -251,6 +260,10 @@ public final class RunnableConfig implements HasMetadata {
             this.nextNode       = config.nextNode;
             this.streamMode     = config.streamMode;
 
+        }
+
+        public Builder graphId(String graphId) {
+            return super.addMetadata(GRAPH_ID, graphId);
         }
 
         /**
