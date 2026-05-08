@@ -30,6 +30,7 @@ import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static java.util.concurrent.CompletableFuture.completedFuture;
+import static org.bsc.langgraph4j.action.SubCompiledGraphNodeAction.resumeSubGraphId;
 import static org.bsc.langgraph4j.utils.CollectionsUtils.mergeMap;
 
 /**
@@ -667,7 +668,7 @@ public final class CompiledGraph<State extends AgentState> implements GraphDefin
 
         final Context context;
         int iteration = 0;
-        final RunnableConfig config;
+        private RunnableConfig config;
 
         protected AsyncNodeGenerator(GraphInput input, RunnableConfig config )  {
             final var configBuilder = RunnableConfig.builder(config)
@@ -887,6 +888,9 @@ public final class CompiledGraph<State extends AgentState> implements GraphDefin
                         future = completedFuture( returnFromEmbed.asStateDataOrLastCheckpointStateData() );
                     }
 
+                    config = config.removeMetadata(
+                            resumeSubGraphId( context.currentNodeId() ),
+                            RunnableConfig.SUBGRAPH_RESUME_UPDATE_DATA );
 
                     return Data.of( future.thenCompose( TryFunction.Try((partialResult) -> {
 
@@ -945,7 +949,8 @@ public final class CompiledGraph<State extends AgentState> implements GraphDefin
 
                 context.setCurrentNodeId( context.nextNodeId() );
 
-                final var newConfig = updateRunnableConfigMetadata( config, context.currentNodeId() );
+                // final var newConfig = updateRunnableConfigMetadata( config, context.currentNodeId() );
+                config = updateRunnableConfigMetadata( config, context.currentNodeId() );
 
                 //
                 // EVALUATE ACTION
@@ -958,7 +963,7 @@ public final class CompiledGraph<State extends AgentState> implements GraphDefin
                 final var clonedState = cloneState(context.currentState());
 
                 try {
-                    return applyAction(action, context.currentNodeId(), clonedState, newConfig);
+                    return applyAction(action, context.currentNodeId(), clonedState, config);
                 }
                 catch( InterruptedException ex ) {
                     if( action instanceof ParallelNode.AsyncParallelNodeAction<?> parallelNodeAction ) {
