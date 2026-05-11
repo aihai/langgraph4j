@@ -30,6 +30,7 @@ import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static java.util.concurrent.CompletableFuture.completedFuture;
+import static org.bsc.langgraph4j.action.SubCompiledGraphNodeAction.resumeSubGraphId;
 import static org.bsc.langgraph4j.utils.CollectionsUtils.mergeMap;
 
 /**
@@ -63,8 +64,8 @@ public final class CompiledGraph<State extends AgentState> implements GraphDefin
          * @param args the arguments to format the error message
          * @return a new GraphRunnerException
          */
-        GraphRunnerException exception(String... args) {
-            return new GraphRunnerException(format(errorMessage, (Object[]) args));
+        GraphRunnerException exception(RunnableConfig config, String... args) {
+            return new GraphRunnerException( config, errorMessage.formatted( (Object[]) args));
         }
     }
 
@@ -324,7 +325,7 @@ public final class CompiledGraph<State extends AgentState> implements GraphDefin
     private Command nextNodeId(EdgeValue<State> route , Map<String,Object> state, String nodeId, RunnableConfig config ) throws Exception {
 
         if( route == null ) {
-            throw RunnableErrors.missingEdge.exception(nodeId);
+            throw RunnableErrors.missingEdge.exception(config,nodeId);
         }
         if( route.id() != null ) {
             return new Command(route.id(), state);
@@ -349,14 +350,14 @@ public final class CompiledGraph<State extends AgentState> implements GraphDefin
 
             final String result = route.value().mappings().get(newRoute);
             if( result == null ) {
-                throw RunnableErrors.missingNodeInEdgeMapping.exception(nodeId, newRoute);
+                throw RunnableErrors.missingNodeInEdgeMapping.exception(config, nodeId, newRoute);
             }
 
             final var currentState = AgentState.updateState(state, command.update(), stateGraph.getChannels());
 
             return new Command(result, currentState);
         }
-        throw RunnableErrors.executionError.exception( format("invalid edge value for nodeId: [%s] !", nodeId) );
+        throw RunnableErrors.executionError.exception( config, format("invalid edge value for nodeId: [%s] !", nodeId) );
     }
 
     /**
@@ -667,7 +668,7 @@ public final class CompiledGraph<State extends AgentState> implements GraphDefin
 
         final Context context;
         int iteration = 0;
-        final RunnableConfig config;
+        private RunnableConfig config;
 
         protected AsyncNodeGenerator(GraphInput input, RunnableConfig config )  {
             final var configBuilder = RunnableConfig.builder(config)
@@ -887,6 +888,9 @@ public final class CompiledGraph<State extends AgentState> implements GraphDefin
                         future = completedFuture( returnFromEmbed.asStateDataOrLastCheckpointStateData() );
                     }
 
+                    config = config.removeMetadata(
+                            resumeSubGraphId( context.currentNodeId() ),
+                            RunnableConfig.SUBGRAPH_RESUME_UPDATE_DATA );
 
                     return Data.of( future.thenCompose( TryFunction.Try((partialResult) -> {
 
@@ -945,7 +949,8 @@ public final class CompiledGraph<State extends AgentState> implements GraphDefin
 
                 context.setCurrentNodeId( context.nextNodeId() );
 
-                final var newConfig = updateRunnableConfigMetadata( config, context.currentNodeId() );
+                // final var newConfig = updateRunnableConfigMetadata( config, context.currentNodeId() );
+                config = updateRunnableConfigMetadata( config, context.currentNodeId() );
 
                 //
                 // EVALUATE ACTION
@@ -953,12 +958,12 @@ public final class CompiledGraph<State extends AgentState> implements GraphDefin
                 final var action = nodes.get( context.currentNodeId() );
 
                 if (action == null)
-                    throw RunnableErrors.missingNode.exception(context.currentNodeId());
+                    throw RunnableErrors.missingNode.exception(config, context.currentNodeId());
 
                 final var clonedState = cloneState(context.currentState());
 
                 try {
-                    return applyAction(action, context.currentNodeId(), clonedState, newConfig);
+                    return applyAction(action, context.currentNodeId(), clonedState, config);
                 }
                 catch( InterruptedException ex ) {
                     if( action instanceof ParallelNode.AsyncParallelNodeAction<?> parallelNodeAction ) {
@@ -968,9 +973,13 @@ public final class CompiledGraph<State extends AgentState> implements GraphDefin
                 }
 
             }
+            catch( GraphRunnerException e ) {
+                log.error( e.getMessage(), e );
+                return Data.error( e );
+            }
             catch( Throwable e ) {
                 log.error( e.getMessage(), e );
-                return Data.error(e);
+                return Data.error( new GraphRunnerException( config, e) );
             }
 
         }

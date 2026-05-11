@@ -151,7 +151,9 @@ public class CompiledSubGraphTest {
                     .orElseThrow();
 
             if (!output.isEND()) {
-                throw new SubGraphInterruptionException(parentNodeId,
+                throw new SubGraphInterruptionException(
+                        config,
+                        parentNodeId,
                         output.node(),
                         mergeMap(output.state().data(), Map.of("resume_subgraph", true)));
             }
