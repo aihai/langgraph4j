@@ -2,6 +2,65 @@
 
 
 
+<!-- "name: v1.8.16" is a release tag -->
+
+## [v1.8.16](https://github.com/bsorrentino/langgraph4j/releases/tag/v1.8.16) (2026-05-11)
+
+### Features
+
+ *  add DynamoDB-based checkpoint saver implementation and repository module ([8db29067e34f585](https://github.com/bsorrentino/langgraph4j/commit/8db29067e34f5856067b21144f681cc8016aa428))
+   
+ *  **RunnableConfig**  add metadata removal and graph id builder support ([a7827e997005674](https://github.com/bsorrentino/langgraph4j/commit/a7827e99700567458a0c938badaa2195c00a5230))
+   
+ *  **CompiledGraph**  attach runnable config to graph runner errors ([1f8c6d3fe3314dc](https://github.com/bsorrentino/langgraph4j/commit/1f8c6d3fe3314dcfa70aeae5a1c89381857c659b))
+   
+ *  **GraphRunnerException**  retain runnable config in runner errors ([3a2c70dc584feee](https://github.com/bsorrentino/langgraph4j/commit/3a2c70dc584feee75b86951fd1964f689b0b4d10))
+     > Add RunnableConfig context to GraphRunnerException and expose it through config(). Replace the message-only constructor with config-aware constructors for messages and causes.
+   
+
+### Bug Fixes
+
+ -  **CompiledGraph**  keep runnable config metadata in sync ([a2af6608788a36b](https://github.com/bsorrentino/langgraph4j/commit/a2af6608788a36b577169617f2650b47471223e0))
+     > Make AsyncNodeGenerator update its RunnableConfig as execution advances, so node metadata is retained across action execution and cleared after subgraph resume handling.
+
+
+
+### Test 
+
+ -  **DynamoDBSaverTest**  use typed state in saver tests ([22a89d5d236ac99](https://github.com/bsorrentino/langgraph4j/commit/22a89d5d236ac99f71595002b6469d81fabc0849))
+    > work on #390 pr #398
+
+ -  **CancellationTest**  assert wrapped cancellation cause ([404322054ce99fa](https://github.com/bsorrentino/langgraph4j/commit/404322054ce99fa009d57a6e21c70e656ec4c7dc))
+    > Update cancellation assertions to expect GraphRunnerException as the immediate failure cause while verifying InterruptedException remains the root cause.
+
+ -  **SubGraphInterruptionException**  retain runnable config ([859766710cf4fb0](https://github.com/bsorrentino/langgraph4j/commit/859766710cf4fb045a859b3a41dea7a47674f192))
+   
+ -  **CompiledSubGraphTest**  pass config to subgraph interruption ([3633ec37190c47b](https://github.com/bsorrentino/langgraph4j/commit/3633ec37190c47bfed6cf497ef624d17401862c2))
+   
+
+### Documentation
+
+ -  **site**  update references ([34418447a9f8b18](https://github.com/bsorrentino/langgraph4j/commit/34418447a9f8b1862637d1c2c772f6ef1b04c1f9))
+
+ -  update project references ([eaca298313a5e29](https://github.com/bsorrentino/langgraph4j/commit/eaca298313a5e296ca443ab358e11c33630631e0))
+
+ -  update changelog ([39759cb99ca131c](https://github.com/bsorrentino/langgraph4j/commit/39759cb99ca131c3375aec73dc7ea41b04591627))
+
+
+### ALM 
+
+ -  bump to next version 1.8.16 ([1b57599d5fb61fd](https://github.com/bsorrentino/langgraph4j/commit/1b57599d5fb61fdb73c6b8cfc707e1c539acc6b8))
+   
+ -  **spring-ai-agent**  sync maven archetype ([63a2a7a28148bdb](https://github.com/bsorrentino/langgraph4j/commit/63a2a7a28148bdb029d347d8b5597c5138041c53))
+   
+ -  upgrade langchain4j dependency versions ([b617f4fbd343bc0](https://github.com/bsorrentino/langgraph4j/commit/b617f4fbd343bc0c925b087d58fbb376092f0565))
+    > Update langchain4j.version to 1.14.1 and langchain4j.beta to 1.14.1-beta24.
+
+
+
+
+
+
 <!-- "name: v1.8.15" is a release tag -->
 
 ## [v1.8.15](https://github.com/bsorrentino/langgraph4j/releases/tag/v1.8.15) (2026-05-07)
