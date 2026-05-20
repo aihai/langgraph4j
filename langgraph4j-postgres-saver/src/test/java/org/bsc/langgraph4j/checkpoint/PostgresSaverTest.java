@@ -11,6 +11,7 @@ import org.bsc.langgraph4j.state.AgentState;
 import org.bsc.langgraph4j.state.AgentStateFactory;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.postgresql.ds.PGSimpleDataSource;
@@ -19,6 +20,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Map;
+import java.util.Properties;
 import java.util.logging.LogManager;
 
 import static org.bsc.langgraph4j.StateGraph.END;
@@ -234,6 +236,56 @@ public class PostgresSaverTest {
 
         saver.release( runnableConfig );
 
+    }
+
+    @Test
+    public void testBuilderSinglePropertyApplied() throws Exception {
+        var saver = buildPostgresSaver()
+                .property("ApplicationName", "lg4j-property-test")
+                .createTables(false)
+                .stateSerializer(StateSerializerEnum.BINARY.stateSerializer)
+                .build();
+
+        try (var conn = saver.datasource.getConnection();
+             var rs = conn.createStatement().executeQuery("SELECT current_setting('application_name')")) {
+            assertTrue(rs.next());
+            assertEquals("lg4j-property-test", rs.getString(1));
+        }
+    }
+
+    @Test
+    public void testBuilderMultiplePropertiesApplied() throws Exception {
+        var props = new Properties();
+        props.setProperty("ApplicationName", "lg4j-props-test");
+        props.setProperty("connectTimeout", "30");
+
+        var saver = buildPostgresSaver()
+                .properties(props)
+                .createTables(false)
+                .stateSerializer(StateSerializerEnum.BINARY.stateSerializer)
+                .build();
+
+        try (var conn = saver.datasource.getConnection();
+             var rs = conn.createStatement().executeQuery("SELECT current_setting('application_name')")) {
+            assertTrue(rs.next());
+            assertEquals("lg4j-props-test", rs.getString(1));
+        }
+    }
+
+    @Test
+    public void testBuilderPropertyIgnoredWithExternalDatasource() throws Exception {
+        // when datasource() is provided explicitly, property()/properties() have no effect
+        var saver = buildPostgresSaverWithExistedDatasource()
+                .property("ApplicationName", "should-not-apply")
+                .createTables(false)
+                .stateSerializer(StateSerializerEnum.BINARY.stateSerializer)
+                .build();
+
+        try (var conn = saver.datasource.getConnection();
+             var rs = conn.createStatement().executeQuery("SELECT current_setting('application_name')")) {
+            assertTrue(rs.next());
+            assertNotEquals("should-not-apply", rs.getString(1));
+        }
     }
 
     /**
